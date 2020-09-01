@@ -13,7 +13,7 @@ object staymetric_median_time {
     // check for args availability before getting paths
     val (month, state,output_path) =
       args.size match {
-        case x if x == 3 => (args(0), args(1),args(2))
+        case x if x == 3 => (args(0), args(1),args(2))   // check input parameters
         case _ => {
           sys.error("Invalid arguments. Please pass (1) YYYYMM  (2) state code (3) output path")
           sys.exit(1)
@@ -79,7 +79,7 @@ object staymetric_median_time {
       new Column(expr)
     }
     def percentile_approx(col: Column, percentage: Column): Column = percentile_approx(
-      col, percentage, lit(ApproximatePercentile.DEFAULT_PERCENTILE_ACCURACY)
+      col, percentage, lit(ApproximatePercentile.DEFAULT_PERCENTILE_ACCURACY)  //udf to calculate median
     )
   }
 
