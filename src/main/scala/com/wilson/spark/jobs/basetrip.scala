@@ -21,14 +21,14 @@ object basetrip {
       .getOrCreate()
     import spark.implicits._
     val output_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/"
-    val weight_dir = "s3a://au-daas-compute/xtrapolation_for_roamer/merge_imsi_weight/"
-
+    //val weight_dir = "s3a://au-daas-compute/xtrapolation_for_roamer/merge_imsi_weight/"  // for after 201912
+    val weight_dir = "s3a://au-daas-compute-sg/xtrapolation_for_roamer-v2/merge_imsi_weight/" //for 201910 and 11
 
     val geo_o = spark.read.parquet("s3a://au-daas-compute/output/parquet/aggregated-geo-hierarchy/latest")
                 .selectExpr("geo_hierarchy_base_id as startGeoUnitId","state as origin_state","gcc as origin_gcc","sa4 as origin_sa4","sa3 as origin_sa3")
     val geo_d = geo_o.selectExpr("startGeoUnitId as endGeoUnitId","origin_state as destination_state","origin_gcc as destination_gcc","origin_sa4 as destination_sa4","origin_sa3 as destination_sa3")
-    //val trip_path = "s3a://au-daas-compute/output/parquet/union_trip/"
-    val trip_path = "s3a://au-daas-compute/output-v2/parquet-v2/union_trip/"
+    //val trip_path = "s3a://au-daas-compute/output/parquet/union_trip/" // for after 201912
+    val trip_path = "s3a://au-daas-compute/output-v2/parquet-v2/union_trip/"// for 201910 and 11
 
     val weights = spark.read.csv(weight_dir + day)
       .withColumn("file_date", regexp_replace(input_file_name(), "^.*?(\\d{8}).*$", "$1"))
