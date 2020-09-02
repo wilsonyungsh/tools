@@ -25,5 +25,7 @@ object month {
     val output_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/"
 
     trip.write.parquet(output_path + "trip/" + period)
+    //stop spark
+    spark.stop
   }
 }
