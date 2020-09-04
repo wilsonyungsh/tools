@@ -1,10 +1,9 @@
 package com.wilson.spark.jobs
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.functions.{lit, size, to_date, when}
 
-
-object leg_retain {
+object legRetain {
   def main(args: Array[String]) {
     // check for args availability before getting paths
     val (period) =
