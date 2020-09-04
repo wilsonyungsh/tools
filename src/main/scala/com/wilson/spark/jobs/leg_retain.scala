@@ -25,7 +25,7 @@ object leg_retain {
         "destination_state", "destination_gcc", "destination_sa4", "linksInfo", "distance", "weight", "listOfModes", "listofLinks")
       .withColumn("retain", when(size('listOfModes) < 2, lit("1")).otherwise("0"))
       .drop("listOfModes", "linksInfo")
-      .filter('retain === 1)
+      .filter('retain === 1).distinct
       .withColumn("date", to_date('startTimeConverted))
 
     //write out
