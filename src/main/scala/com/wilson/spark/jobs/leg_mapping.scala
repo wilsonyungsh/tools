@@ -1,8 +1,8 @@
 package com.wilson.spark.jobs
 
 
-//import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator //
-//import org.apache.spark.serializer.KryoSerializer //
+import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator //
+import org.apache.spark.serializer.KryoSerializer //
 import org.apache.spark.sql.SparkSession  //
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator //
 import org.apache.spark.sql.functions._
@@ -18,8 +18,12 @@ object leg_mapping {
         }
       }
 
-    var spark = SparkSession.builder().config("geospark.join.gridtype", "kdbtree")
+    val spark = SparkSession.builder().config("geospark.join.gridtype", "kdbtree")
+      //.master("local")
       .getOrCreate()
+
+    import spark.implicits._
+
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
 
     val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
@@ -37,8 +41,13 @@ object leg_mapping {
         """.stripMargin
     )
     destination_sa4.createOrReplaceTempView("d_sa4")
-    val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_not_mapped/"
-    val leg = spark.read.parquet(input_path + day).drop("origin_sa4", "destination_sa4", "dominantMode", "startTimeConverted")
+
+   val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_not_mapped/"
+
+
+
+    //split start and end lat lon
+    val leg = spark.read.parquet(input_path).drop("origin_sa4", "destination_sa4", "dominantMode", "startTimeConverted")
       .withColumn("start_lon", split('start_loc, ",")(0).cast("Double"))
       .withColumn("start_lat", split('start_loc, ",")(1).cast("Double"))
       .withColumn("end_lon", split('end_loc, ",")(0).cast("Double"))
@@ -46,14 +55,18 @@ object leg_mapping {
       .drop("start_loc", "end_loc")
 
     leg.createOrReplaceTempView("leg_a")
+
+    //convert into geometry
     val leg_geom = spark.sql(
       """
         select agentId agentId,leg_start_date,leg_mode,leg_start_time,leg_end_time,leg_duration,leg_distance,leg_links,weight,
                st_point(CAST(start_lon as Decimal(24,20)),CAST(start_lat as Decimal(24,20))) as s_geom,
                st_point(CAST(end_lon as Decimal(24,20)),CAST(end_lat as Decimal(24,20))) as e_geom from leg_a
-        """.stripMargin
+        """
     )
     leg_geom.createOrReplaceTempView("leg_tomap")
+
+    //map out start and end geography
     val mapped = spark.sql(
       """
         select a.*,b.origin_sa4,b.origin_gcc,b.origin_state,c.destination_sa4,c.destination_gcc,c.destination_state from leg_tomap a
@@ -65,6 +78,7 @@ object leg_mapping {
     //write out
     val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_mapped/"
     mapped.write.parquet(out_path + day)
-
+    //stop spark
+    spark.stop
   }
 }
