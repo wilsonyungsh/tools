@@ -1,15 +1,16 @@
 package com.wilson.spark.jobs
 
 
-import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator //
-import org.apache.spark.serializer.KryoSerializer //
+
 import org.apache.spark.sql.SparkSession  //
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator //
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{SQLContext, SaveMode}
+import org.apache.spark.serializer.KryoSerializer //
+import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator //
 
 object leg_mapping {
   def main(args: Array[String]) {
-    val (day) =
+    val (period) =
       args.size match {
         case x if x == 1 => (args(0)) // check input parameters
         case _ => {
@@ -22,38 +23,33 @@ object leg_mapping {
       //.master("local")
       .getOrCreate()
 
-    import spark.implicits._
+    //import spark.implicits._
 
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
 
     val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
     val sa4 = spark.read.parquet(wkt_path)
     sa4.createOrReplaceTempView("sa4_wkt")
+
     val origin_sa4 = spark.sql(
       """
         select SA4_CODE16 as origin_sa4,GCC_CODE16 as origin_gcc, STE_CODE16 as origin_state,ST_GeomFromWKT(geometry) as geom from sa4_wkt
         """.stripMargin
     )
+
     origin_sa4.createOrReplaceTempView("o_sa4")
+
     val destination_sa4 = spark.sql(
       """
         select SA4_CODE16 as destination_sa4,GCC_CODE16 as destination_gcc, STE_CODE16 as destination_state,ST_GeomFromWKT(geometry) as geom from sa4_wkt
         """.stripMargin
     )
+
     destination_sa4.createOrReplaceTempView("d_sa4")
 
-   val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_not_mapped/"
 
-
-
-    //split start and end lat lon
-    val leg = spark.read.parquet(input_path).drop("origin_sa4", "destination_sa4", "dominantMode", "startTimeConverted")
-      .withColumn("start_lon", split('start_loc, ",")(0).cast("Double"))
-      .withColumn("start_lat", split('start_loc, ",")(1).cast("Double"))
-      .withColumn("end_lon", split('end_loc, ",")(0).cast("Double"))
-      .withColumn("end_lat", split('end_loc, ",")(1).cast("Double"))
-      .drop("start_loc", "end_loc")
-
+    val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_month_not_mapped/"
+    val leg = spark.read.parquet(input_path + period)
     leg.createOrReplaceTempView("leg_a")
 
     //convert into geometry
@@ -77,7 +73,7 @@ object leg_mapping {
 
     //write out
     val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
-    mapped.write.parquet(out_path + "exploded_mapped/" + day)
+    mapped.write.mode(SaveMode.Overwrite).parquet(out_path + "monthly_leg_mapped/" + period)
     //stop spark
     spark.stop
   }
