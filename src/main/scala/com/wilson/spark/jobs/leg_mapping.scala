@@ -55,7 +55,7 @@ object leg_mapping {
     //convert into geometry
     val leg_geom = spark.sql(
       """
-        select agentId agentId,leg_start_date,leg_mode,leg_start_time,leg_end_time,leg_duration,leg_distance,leg_links,weight,
+        select agentId agentId,leg_start_date,leg_mode,leg_start_time,leg_end_time,leg_duration,leg_distance,listOfLinks,weight,
                st_point(CAST(start_lon as Decimal(24,20)),CAST(start_lat as Decimal(24,20))) as s_geom,
                st_point(CAST(end_lon as Decimal(24,20)),CAST(end_lat as Decimal(24,20))) as e_geom from leg_a
         """
