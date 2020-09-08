@@ -76,8 +76,8 @@ object leg_mapping {
     ).drop("s_geom", "e_geom")
 
     //write out
-    val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_mapped/"
-    mapped.write.parquet(out_path + day)
+    val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
+    mapped.write.parquet(out_path + "exploded_mapped/" + day)
     //stop spark
     spark.stop
   }
