@@ -26,6 +26,9 @@ object leg_mapping {
     //import spark.implicits._
 
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
+    val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
+    val sa4 = spark.read.parquet(wkt_path)
+    sa4.createOrReplaceTempView("sa4_wkt")
 
     val origin_sa4 = spark.sql(
       """
