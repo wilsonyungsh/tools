@@ -22,7 +22,7 @@ object leg_mapping {
     val spark = SparkSession.builder()
       .config("geospark.global.index", "true")   //spatial index enabled
       .config("geospark.global.indextype", "quadtree") //index type
-      .config("geospark.join.numpartition",500)  //partition number
+      .config("geospark.join.numpartition",1024)  //partition number
       //.master("local")
       .getOrCreate()
 
@@ -31,6 +31,7 @@ object leg_mapping {
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
     val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
     val sa4 = spark.read.parquet(wkt_path)
+    spark.sparkContext.broadcast(sa4)
     sa4.createOrReplaceTempView("sa4_wkt")
 
     val origin_sa4 = spark.sql(
@@ -70,7 +71,7 @@ object leg_mapping {
 
     //write out
     val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
-    mapped.write.mode(SaveMode.Overwrite).parquet(out_path + "monthly_leg_mapped/" + period)
+    mapped.repartition(1024).write.mode(SaveMode.Overwrite).parquet(out_path + "monthly_leg_mapped/" + period)
     //stop spark
     spark.stop
   }
