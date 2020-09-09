@@ -19,7 +19,10 @@ object leg_mapping {
         }
       }
 
-    val spark = SparkSession.builder().config("geospark.join.gridtype", "kdbtree")
+    val spark = SparkSession.builder()
+      .config("geospark.global.index", "true")   //spatial index enabled
+      .config("geospark.global.indextype", "quadtree") //index type
+      .config("geospark.join.numpartition",500)  //partition number
       //.master("local")
       .getOrCreate()
 
