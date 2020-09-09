@@ -41,7 +41,7 @@ object partition_day {
         """.stripMargin)
 
     val output_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
-    leg_geom.write.partitionBy("date").parquet(output_path + "leg_daily_not_mapped" + period)
+    leg_geom.write.partitionBy("date").parquet(output_path + "leg_daily_not_mapped/" + period)
 
     spark.stop
 
