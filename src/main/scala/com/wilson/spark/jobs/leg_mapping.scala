@@ -20,33 +20,39 @@ object leg_mapping {
       }
 
     val spark = SparkSession.builder()
-      .config("geospark.global.index", "true")   //spatial index enabled
-      .config("geospark.global.indextype", "quadtree") //index type
-      .config("geospark.join.numpartition",1024)  //partition number
-      //.master("local")
+      .config("spark.serializer", classOf[KryoSerializer].getName)
+      .config("spark.kryo.registrator", classOf[GeoSparkKryoRegistrator].getName)
+      .config("geospark.global.index", "true")   //index
+      .config("geospark.global.indextype", "quadtree")
+      .config("geospark.join.gridtype", "quadtree")
+      .config("geospark.join.numpartition",1024)
       .getOrCreate()
 
     //import spark.implicits._
 
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
+    //using sa1
+    // val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa1"
+    // val sa1 = spark.read.parquet(wkt_path)
+    // sa1.createOrReplaceTempView("o_sa1")
+    // val destination_sa1 = spark.sql(
+    //         """
+    //         select origin_sa1 as destination_sa1,origin_sa2 as destination_sa2,origin_sa3 as destination_sa3,origin_sa4 as destination_sa4,origin_gcc as destination_gcc, origin_state as destination_state,geom from o_sa1
+    //         """.stripMargin
+    // )
+    // destination_sa1.createOrReplaceTempView("d_sa1")
+
+
+    //using sa4
     val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
     val sa4 = spark.read.parquet(wkt_path)
-    spark.sparkContext.broadcast(sa4)
-    sa4.createOrReplaceTempView("sa4_wkt")
-
-    val origin_sa4 = spark.sql(
-      """
-        select SA4_CODE16 as origin_sa4,GCC_CODE16 as origin_gcc, STE_CODE16 as origin_state,ST_GeomFromWKT(geometry) as geom from sa4_wkt
-        """.stripMargin
-    )
-    origin_sa4.createOrReplaceTempView("o_sa4")
+    sa4.createOrReplaceTempView("o_sa4")
     val destination_sa4 = spark.sql(
       """
-        select SA4_CODE16 as destination_sa4,GCC_CODE16 as destination_gcc, STE_CODE16 as destination_state,ST_GeomFromWKT(geometry) as geom from sa4_wkt
+        select origin_sa4 as destination_sa4,origin_gcc as destination_gcc, origin_state as destination_state,geom from o_sa4
         """.stripMargin
     )
     destination_sa4.createOrReplaceTempView("d_sa4")
-
 
     val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_month_not_mapped/"
     val leg = spark.read.parquet(input_path + period)
