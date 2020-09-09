@@ -23,7 +23,7 @@ object leg_mapping {
       .config("spark.kryo.registrator", classOf[GeoSparkKryoRegistrator].getName)
       .config("geospark.global.index", "true")   //index
       .config("geospark.global.indextype", "quadtree")
-      .config("geospark.join.numpartition",1024)
+      //.config("geospark.join.numpartition",1024)
       .getOrCreate()
 
     GeoSparkSQLRegistrator.registerAll(spark)
