@@ -45,7 +45,7 @@ object leg_mapping {
 
     val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/month_geom/"
     val leg = spark.read.parquet(input_path + period).withColumn("uuid", expr("uuid()")) //create uuid as key to join later on
-    leg.createOrReplaceTempView("leg_a")
+    leg.createOrReplaceTempView("leg_tomap")
     // spatial join to bring in origin
     val mapped_o = spark.sql(
       """
