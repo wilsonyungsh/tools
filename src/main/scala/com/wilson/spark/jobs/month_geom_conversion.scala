@@ -41,7 +41,7 @@ object month_geom_conversion {
         """.stripMargin).repartition(1024)
 
     val output_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
-    leg_geom.write.parquet(output_path + "month_geom/" + period)
+    leg_geom.write.mode("overwrite").parquet(output_path + "month_geom/" + period)
     // stop spark
     spark.stop
   }
