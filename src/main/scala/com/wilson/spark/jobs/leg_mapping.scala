@@ -59,7 +59,7 @@ object leg_mapping {
         """
     )
     // join to master table based on uuid
-    val full = leg.join(mapped_o,Seq("uuid"),"left").join(mapped_d,Seq("uuid"),"left")
+    val full = leg.join(mapped_o,Seq("uuid"),"left").join(mapped_d,Seq("uuid"),"left").repartition(1024)
     //write out
     val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/monthly_leg_mapped/"
     full.write.mode("overwrite").parquet(out_path + period)
