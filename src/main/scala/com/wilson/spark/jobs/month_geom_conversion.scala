@@ -31,7 +31,7 @@ object month_geom_conversion {
 
     val path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_month_not_mapped/"
     val leg = spark.read.parquet(path + period)
-    leg.createOrReplaceTempView("leg_a")
+    leg.createOrReplaceTempView("leg_tomap")
 
     val leg_geom = spark.sql(
       """
