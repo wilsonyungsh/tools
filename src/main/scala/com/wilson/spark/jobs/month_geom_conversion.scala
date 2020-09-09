@@ -4,8 +4,8 @@ import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.sql.SparkSession
 import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
-object partition_day {
 
+object month_geom_conversion {
 
   def main(args: Array[String]) {
     val (period) =
@@ -29,21 +29,20 @@ object partition_day {
     //import spark.implicits._
     GeoSparkSQLRegistrator.registerAll(spark) //register utils
 
-    val leg = spark.read.parquet("s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_month_not_mapped/" + period + "*")
-
+    val path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/exploded_month_not_mapped/"
+    val leg = spark.read.parquet(path + period)
     leg.createOrReplaceTempView("leg_a")
 
-    val leg_geom =  spark.sql(
+    val leg_geom = spark.sql(
       """
-        select regexp_replace(leg_start_date,"-","") as date,agentId agentId,leg_mode,leg_start_date,leg_start_time,leg_end_time,leg_duration,leg_distance,listOflinks,weight,
+        select agentId agentId,leg_mode,leg_start_date,leg_start_time,leg_end_time,leg_duration,leg_distance,listOflinks,weight,
                st_point(CAST(start_lon as Decimal(24,20)),CAST(start_lat as Decimal(24,20))) as s_geom,
                st_point(CAST(end_lon as Decimal(24,20)),CAST(end_lat as Decimal(24,20))) as e_geom from leg_a
-        """.stripMargin)
+        """.stripMargin).repartition(1024)
 
     val output_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/"
-    leg_geom.write.partitionBy("date").parquet(output_path + "leg_daily_not_mapped/" + period)
-
+    leg_geom.write.parquet(output_path + "month_geom/" + period)
+    // stop spark
     spark.stop
-
   }
 }
