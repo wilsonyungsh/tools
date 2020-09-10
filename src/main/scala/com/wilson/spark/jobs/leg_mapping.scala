@@ -17,16 +17,13 @@ object leg_mapping {
           sys.exit(1)
         }
       }
-
     val spark = SparkSession.builder()
       .config("spark.serializer", classOf[KryoSerializer].getName)
       .config("spark.kryo.registrator", classOf[GeoSparkKryoRegistrator].getName)
       .config("geospark.global.index", "true")   //index
       .config("geospark.global.indextype", "quadtree")
-      //.config("geospark.join.numpartition",1024)
+      //config("geospark.join.numpartition",56)
       .getOrCreate()
-
-    GeoSparkSQLRegistrator.registerAll(spark)
 
     //import spark.implicits._
 
@@ -34,7 +31,11 @@ object leg_mapping {
 
     //using sa4
     val wkt_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/nsw_sa4"
-    val sa4 = spark.read.parquet(wkt_path)
+    val sa4 = spark.read.parquet(wkt_path) //10MB
+
+//    spark.sparkContext.broadcast(sa4)
+
+
     sa4.createOrReplaceTempView("o_sa4")
     val destination_sa4 = spark.sql(
       """
@@ -44,7 +45,7 @@ object leg_mapping {
     destination_sa4.createOrReplaceTempView("d_sa4")
 
     val input_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/month_geom/"
-    val leg = spark.read.parquet(input_path + period).withColumn("uuid", expr("uuid()")) //create uuid as key to join later on
+    val leg = spark.read.parquet(input_path + period).withColumn("uuid", expr("uuid()")).repartition(1024) //create uuid as key to join later on //6~7GB
     leg.createOrReplaceTempView("leg_tomap")
     // spatial join to bring in origin
     val mapped_o = spark.sql(
@@ -59,9 +60,9 @@ object leg_mapping {
         """
     )
     // join to master table based on uuid
-    val full = leg.repartition(1024).join(mapped_o,Seq("uuid"),"left").join(mapped_d,Seq("uuid"),"left")
+    val full = leg.drop("s_geom", "e_geom").join(mapped_o,Seq("uuid"),"left").join(mapped_d,Seq("uuid"),"left").repartition(1024)
     //write out
-    val out_path = "s3a://au-daas-users/wilson/tfnsw/walkleg_trip/legs/monthly_leg_mapped/"
+    val out_path = "/user/wilson/tfnsw/walkleg_trip/legs/monthly_leg_mapped/"
     //val local_path = "/user/wilson/monthly_leg_mapped/"
     full.write.mode("overwrite").parquet(out_path + period)
     //stop spark
